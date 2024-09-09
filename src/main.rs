@@ -8,4 +8,6 @@ mod parser;
 mod wal_io;
 
 #[tokio::main]
-async fn main() {}
+async fn main() {
+    todo!()
+}
