@@ -68,13 +68,13 @@ impl OpBuilder {
         self
     }
 
-    pub fn set_key(&mut self, key: String) -> &mut Self {
-        self.key = Some(key);
+    pub fn set_key<T: Into<String>>(&mut self, key: T) -> &mut Self {
+        self.key = Some(key.into());
         self
     }
 
-    pub fn set_value(&mut self, value: String) -> &mut Self {
-        self.value = Some(value);
+    pub fn set_value<T: Into<String>>(&mut self, value: T) -> &mut Self {
+        self.value = Some(value.into());
         self
     }
 

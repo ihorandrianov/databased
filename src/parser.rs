@@ -80,7 +80,7 @@ impl StateMachine {
         }
     }
 
-    pub fn process(&mut self, token: Token) -> Result<(), MemoryLayerErrors> {
+    pub fn process(&mut self, token: &Token) -> Result<(), MemoryLayerErrors> {
         match &self.state {
             ParserStates::Start => match token {
                 Token::SET => {
@@ -181,7 +181,7 @@ impl Parser {
         let mut state_machine = StateMachine::new();
         let mut token_iter = self.token_stream.iter().peekable();
         while let Some(token) = token_iter.next() {
-            state_machine.process(token.clone())?;
+            state_machine.process(token)?;
             if let Some(op) = state_machine.get_operation() {
                 operations.push(op);
             }

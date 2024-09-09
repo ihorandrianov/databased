@@ -1,5 +1,6 @@
 mod bytecode_serializer;
 mod errors;
+mod filesystem;
 mod in_memory;
 mod kvstore;
 mod log;

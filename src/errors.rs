@@ -30,3 +30,33 @@ pub enum BytecodeSerializerError {
     #[error("Error deserializing bytecode")]
     DeserializationError(String),
 }
+
+#[derive(Error, Debug)]
+pub enum ParserError {
+    #[error("Error parsing token")]
+    TokenParseError(String),
+
+    #[error("Error parsing command")]
+    CommandParseError(String),
+
+    #[error("Error parsing key")]
+    KeyParseError(String),
+
+    #[error("Error parsing value")]
+    ValueParseError(String),
+}
+
+#[derive(Error, Debug)]
+pub enum WALError {
+    #[error("Error writing to WAL")]
+    WriteError(#[from] std::io::Error),
+
+    #[error("Error reading from WAL")]
+    ReadError(String),
+}
+
+#[derive(Error, Debug)]
+pub enum FileSystemError {
+    #[error("Error creating directory {0}")]
+    CreateDir(String),
+}
