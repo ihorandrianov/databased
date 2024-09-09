@@ -1,0 +1,13 @@
+[package]
+name = "kvstore"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+bytes = "1.7.1"
+chrono = "0.4.38"
+clap = { version = "4.5.16", features = ["derive"] }
+lazy_static = "1.5.0"
+serde = { version = "1.0", features = ["derive"] }
+thiserror = "1.0.63"
+tokio = { version = "1", features = ["full"] }
