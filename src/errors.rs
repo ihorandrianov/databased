@@ -44,6 +44,15 @@ pub enum ParserError {
 
     #[error("Error parsing value")]
     ValueParseError(String),
+
+    #[error("Error serializing from UTF8")]
+    UTF8Error(#[from] Utf8Error),
+
+    #[error("Error reading from buffer")]
+    BufferError(#[from] std::io::Error),
+
+    #[error("No operations found")]
+    NoOperations,
 }
 
 #[derive(Error, Debug)]
@@ -59,4 +68,27 @@ pub enum WALError {
 pub enum FileSystemError {
     #[error("Error creating directory {0}")]
     CreateDir(String),
+}
+
+#[derive(Error, Debug)]
+pub enum PersistentLayerError {
+    #[error("Error writing or reading from disk")]
+    DiskError(#[from] std::io::Error),
+
+    #[error("Error serializing or deserializing data, message: {0}")]
+    SerializationError(String),
+
+    #[error("Something went wrong: {0}")]
+    GenericError(String),
+}
+
+#[derive(Debug)]
+pub enum KVStoreError {
+    MemoryLayerError(MemoryLayerErrors),
+    BytecodeSerializerError(BytecodeSerializerError),
+    ParserError(ParserError),
+    WALError(WALError),
+    FileSystemError(FileSystemError),
+    PersistentLayerError(PersistentLayerError),
+    LogError(LogError),
 }

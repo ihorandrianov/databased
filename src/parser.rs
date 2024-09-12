@@ -1,9 +1,9 @@
 use crate::{
-    errors::MemoryLayerErrors,
+    errors::{MemoryLayerErrors, ParserError},
     operation::{Op, OpBuilder, OpType},
 };
 use core::str;
-use std::error::Error;
+
 use tokio::io::AsyncBufReadExt;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -27,7 +27,7 @@ impl Lexer {
     async fn tokenize<R: AsyncBufReadExt + Unpin>(
         &self,
         mut buffer: R,
-    ) -> Result<Vec<Token>, Box<dyn Error>> {
+    ) -> Result<Vec<Token>, ParserError> {
         let mut bytes: Vec<u8> = vec![];
         let mut tokens: Vec<Token> = vec![];
 
@@ -174,22 +174,22 @@ impl Parser {
     pub async fn parse<R: AsyncBufReadExt + Unpin>(
         &mut self,
         buffer: R,
-    ) -> Result<Vec<Op>, Box<dyn Error>> {
+    ) -> Result<Vec<Op>, ParserError> {
         let lexer = Lexer::new();
         self.token_stream = lexer.tokenize(buffer).await?;
         let mut operations: Vec<Op> = vec![];
         let mut state_machine = StateMachine::new();
         let mut token_iter = self.token_stream.iter().peekable();
         while let Some(token) = token_iter.next() {
-            state_machine.process(token)?;
+            state_machine
+                .process(token)
+                .map_err(|_| ParserError::CommandParseError(format!("{:?}", token)))?;
             if let Some(op) = state_machine.get_operation() {
                 operations.push(op);
             }
         }
         if operations.is_empty() {
-            return Err(Box::new(MemoryLayerErrors::GenericError(
-                "No valid operations found".to_string(),
-            )));
+            return Err(ParserError::NoOperations);
         }
         Ok(operations)
     }

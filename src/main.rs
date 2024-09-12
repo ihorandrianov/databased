@@ -6,9 +6,13 @@ mod kvstore;
 mod log;
 mod operation;
 mod parser;
+mod persistent;
 mod wal_io;
+use std::path::PathBuf;
 
 #[tokio::main]
 async fn main() {
-    todo!()
+    let root = PathBuf::from("data");
+    let mut kvstore = kvstore::KvStore::new(root).await.unwrap();
+    kvstore.run().await;
 }

@@ -50,7 +50,7 @@ mod tests {
             .open("wal_io")
             .await
             .unwrap();
-        let mut wal_io = WALio::new(file_handle, 100).await;
+        let mut wal_io = WALio::new(file_handle, 100);
         let data = {
             let mut data = Vec::new();
             for i in 0..225 {

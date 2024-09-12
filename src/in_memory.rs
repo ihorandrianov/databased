@@ -35,6 +35,10 @@ impl InMemoryLayer {
         };
         result
     }
+
+    pub fn get_snapshot(&self) -> Vec<(String, String)> {
+        self.store.clone().into_iter().collect()
+    }
 }
 
 #[cfg(test)]

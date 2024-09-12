@@ -27,7 +27,7 @@ impl FileSystem {
         })
     }
 
-    async fn init(&self) -> Result<(), FileSystemError> {
+    pub async fn init(&self) -> Result<(), FileSystemError> {
         let dirs = vec![&self.wal, &self.snapshot, &self.temp, &self.persistent];
         for dir in dirs {
             self.create_dir(dir).await?;
@@ -42,8 +42,24 @@ impl FileSystem {
         Ok(())
     }
 
-    async fn get_root_ref(&self) -> &PathBuf {
+    pub async fn get_root_ref(&self) -> &PathBuf {
         &self.root
+    }
+
+    pub async fn get_wal_ref(&self) -> &PathBuf {
+        &self.wal
+    }
+
+    pub async fn get_snapshot_ref(&self) -> &PathBuf {
+        &self.snapshot
+    }
+
+    pub async fn get_temp_ref(&self) -> &PathBuf {
+        &self.temp
+    }
+
+    pub async fn get_persistent_ref(&self) -> &PathBuf {
+        &self.persistent
     }
 }
 
