@@ -14,5 +14,6 @@ use std::path::PathBuf;
 async fn main() {
     let root = PathBuf::from("data");
     let mut kvstore = kvstore::KvStore::new(root).await.unwrap();
+    kvstore.regenerate().await.unwrap();
     kvstore.run().await;
 }

@@ -1,13 +1,14 @@
 use std::path::PathBuf;
 
-use crate::errors::KVStoreError;
+use crate::bytecode_serializer::BytecodeSerializer;
+use crate::errors::{BytecodeSerializerError, KVStoreError};
 use crate::filesystem::FileSystem;
 use crate::in_memory::InMemoryLayer;
 use crate::log::WAL;
 use crate::operation::Op;
 use crate::parser::Parser;
 use std::sync::Arc;
-use tokio::io::{AsyncWriteExt, BufReader};
+use tokio::io::AsyncWriteExt;
 use tokio::sync::Mutex;
 use tokio::task;
 
@@ -85,5 +86,16 @@ impl KvStore {
                 }
             }
         }
+    }
+
+    pub async fn regenerate(&mut self) -> Result<(), BytecodeSerializerError> {
+        let recovered_file = self.wal.lock().await.recover().await;
+        let chunks = BytecodeSerializer::recover_from_bytes(&recovered_file).map_err(|_| {
+            BytecodeSerializerError::DeserializationError("Error deserializing".to_string())
+        })?;
+        for chunk in chunks {
+            self.store.eval(chunk);
+        }
+        Ok(())
     }
 }

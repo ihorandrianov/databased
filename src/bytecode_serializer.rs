@@ -273,6 +273,20 @@ impl BytecodeSerializer {
 
         chunks
     }
+
+    pub fn recover_from_chunks(chunks: Vec<Vec<u8>>) -> Result<Vec<Op>, BytecodeSerializerError> {
+        let mut ops: Vec<Op> = vec![];
+        for chunk in chunks {
+            let op = BytecodeSerializer::op_from_bytes(chunk)?;
+            ops.push(op);
+        }
+        Ok(ops)
+    }
+
+    pub fn recover_from_bytes(bytes: &[u8]) -> Result<Vec<Op>, BytecodeSerializerError> {
+        let chunks = Self::split_to_chunks(bytes);
+        Self::recover_from_chunks(chunks)
+    }
 }
 
 #[cfg(test)]
