@@ -6,7 +6,7 @@ use std::path::{Path, PathBuf};
 
 use futures::stream::FuturesUnordered;
 use futures::StreamExt;
-use tokio::fs;
+use tokio::fs::{self, File};
 use tokio::sync::mpsc::Receiver;
 
 type DeletedFilesCount = usize;
@@ -14,25 +14,23 @@ type DeletedFilesCount = usize;
 pub struct WAL {
     rc: Receiver<Op>,
     io_controller: WALio,
-    wal_path: PathBuf,
+    wal_file_manager: WALFileManager,
 }
 
 impl WAL {
-    pub async fn new(rc: Receiver<Op>, wal_path: PathBuf) -> Self {
-        let file_name = wal_path.join("wal_01");
-        let file_handle = fs::File::options()
-            .create(true)
-            .write(true)
-            .read(true)
-            .open(file_name)
-            .await
-            .unwrap();
+    pub async fn new(
+        rc: Receiver<Op>,
+        wal_path: PathBuf,
+        wal_filesize_limit: u64,
+    ) -> Result<Self, WALError> {
+        let file_manager = WALFileManager::new(wal_path, wal_filesize_limit).await?;
+        let file_handle = file_manager.get_file_handler().await?;
         let io_controller = WALio::new(file_handle, 3);
-        Self {
+        Ok(Self {
             rc,
             io_controller,
-            wal_path,
-        }
+            wal_file_manager: file_manager,
+        })
     }
 
     pub async fn run(&mut self) -> () {
@@ -51,6 +49,15 @@ impl WAL {
                     }
                 }
             }
+            let new_file = self.wal_file_manager.size_rotate().await;
+            match new_file {
+                Ok(opt) => {
+                    if let Some(file) = opt {
+                        self.io_controller.set_new_file_handle(file)
+                    }
+                }
+                Err(e) => eprintln!("Error rotating WAL file: {:?}", e),
+            }
         }
     }
 
@@ -67,12 +74,12 @@ impl WAL {
 pub struct WALFileManager {
     wal_path: PathBuf,
     wal_dir_files: Vec<PathBuf>,
-
+    file_size: u64,
     latest_file: PathBuf,
 }
 
 impl WALFileManager {
-    pub async fn new(wal_path: PathBuf) -> Result<Self, WALError> {
+    pub async fn new(wal_path: PathBuf, file_size: u64) -> Result<Self, WALError> {
         let mut dir_contents = fs::read_dir(&wal_path).await?;
         let mut wal_dir_files = Vec::new();
         while let Some(entry) = dir_contents.next_entry().await? {
@@ -99,6 +106,7 @@ impl WALFileManager {
             wal_path,
             wal_dir_files,
             latest_file,
+            file_size,
         })
     }
 
@@ -114,7 +122,10 @@ impl WALFileManager {
         Ok(())
     }
 
-    pub async fn cleanup(&mut self, to_point_in_time: i64) -> Result<DeletedFilesCount, WALError> {
+    pub async fn timed_cleanup(
+        &mut self,
+        to_point_in_time: i64,
+    ) -> Result<DeletedFilesCount, WALError> {
         let files_to_delete: Vec<&PathBuf> = self
             .wal_dir_files
             .iter()
@@ -157,6 +168,30 @@ impl WALFileManager {
         self.wal_dir_files
             .retain(|file_path| !success_deleted_files.contains(file_path));
 
+        if self.wal_dir_files.len() == 0 {
+            self.rotate().await?;
+        }
+
         Ok(removed_files_counter)
+    }
+
+    pub async fn size_rotate(&mut self) -> Result<Option<File>, WALError> {
+        let file_size = fs::metadata(&self.latest_file).await?.len();
+        if file_size >= self.file_size {
+            self.rotate().await?;
+            return Ok(Some(fs::File::open(&self.latest_file).await?));
+        }
+
+        Ok(None)
+    }
+
+    async fn get_file_handler(&self) -> Result<File, WALError> {
+        let file = File::options()
+            .read(true)
+            .write(true)
+            .open(&self.latest_file)
+            .await?;
+
+        Ok(file)
     }
 }

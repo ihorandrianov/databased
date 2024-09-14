@@ -35,6 +35,10 @@ impl WALio {
         self.file_handle.read_to_end(&mut buffer).await?;
         Ok(buffer)
     }
+
+    pub fn set_new_file_handle(&mut self, file_handle: File) {
+        self.file_handle = file_handle;
+    }
 }
 
 #[cfg(test)]

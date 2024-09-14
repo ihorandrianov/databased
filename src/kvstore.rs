@@ -32,11 +32,15 @@ impl KvStore {
             .map_err(|e| KVStoreError::FileSystemError(e))?;
         let wal_dir = file_system.get_wal_ref().await.clone();
         let (tx, rx) = tokio::sync::mpsc::channel::<Op>(100);
-        let wal = WAL::new(rx, wal_dir).await;
+        let wal_filesize_limit = 5 * 1024 * 1024;
+        let wal = WAL::new(rx, wal_dir, wal_filesize_limit)
+            .await
+            .map_err(|e| KVStoreError::WALError(e))?;
+        let wal = Arc::new(Mutex::new(wal));
         let parser = Parser::new();
         Ok(Self {
             store,
-            wal: Arc::new(Mutex::new(wal)),
+            wal,
             file_system,
             parser,
             send_to_wal: tx,
@@ -58,9 +62,8 @@ impl KvStore {
             match op {
                 Ok(op) => {
                     for op in op {
-                        let result = self.store.eval(op.clone());
-                        println!("{:?}", op.clone());
-                        self.send_to_wal.send(op).await.unwrap();
+                        self.send_to_wal.send(op.clone()).await.unwrap();
+                        let result = self.store.eval(op);
                         match result {
                             Some(str) => {
                                 if let Err(e) = std_out

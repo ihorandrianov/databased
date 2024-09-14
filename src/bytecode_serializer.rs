@@ -259,6 +259,9 @@ impl BytecodeSerializer {
         let mut start = 0;
         let mut index = 0;
         let mut chunk: Vec<u8> = vec![];
+        if (bytes.len() == 0) {
+            return vec![];
+        }
         while index <= bytes.len() - 4 {
             if bytes[index..index + 4] == magic_start {
                 start = index + 4
