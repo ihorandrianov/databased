@@ -8,6 +8,7 @@ bytes = "1.7.1"
 chrono = "0.4.38"
 clap = { version = "4.5.16", features = ["derive"] }
 futures = "0.3.30"
+hashlink = "0.9.1"
 lazy_static = "1.5.0"
 serde = { version = "1.0", features = ["derive"] }
 thiserror = "1.0.63"

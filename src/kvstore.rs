@@ -5,6 +5,7 @@ use crate::errors::{BytecodeSerializerError, KVStoreError};
 use crate::filesystem::FileSystem;
 use crate::in_memory::InMemoryLayer;
 use crate::log::WAL;
+use crate::lru_cache::LruCacheLayer;
 use crate::operation::Op;
 use crate::parser::Parser;
 use std::sync::Arc;
@@ -18,32 +19,43 @@ pub struct KvStore {
     file_system: FileSystem,
     parser: Parser,
     send_to_wal: tokio::sync::mpsc::Sender<Op>,
+    cache: LruCacheLayer,
 }
 
 impl KvStore {
-    pub async fn new(root: PathBuf) -> Result<Self, KVStoreError> {
+    pub async fn new(root: PathBuf, cache_size: u32) -> Result<Self, KVStoreError> {
         let store = InMemoryLayer::new();
+
         let file_system = FileSystem::new(root)
             .await
             .map_err(|e| KVStoreError::FileSystemError(e))?;
+
         file_system
             .init()
             .await
             .map_err(|e| KVStoreError::FileSystemError(e))?;
+
         let wal_dir = file_system.get_wal_ref().await.clone();
+
         let (tx, rx) = tokio::sync::mpsc::channel::<Op>(100);
         let wal_filesize_limit = 5 * 1024 * 1024;
         let wal = WAL::new(rx, wal_dir, wal_filesize_limit)
             .await
             .map_err(|e| KVStoreError::WALError(e))?;
+
         let wal = Arc::new(Mutex::new(wal));
+
         let parser = Parser::new();
+
+        let cache = LruCacheLayer::new(cache_size);
+
         Ok(Self {
             store,
             wal,
             file_system,
             parser,
             send_to_wal: tx,
+            cache,
         })
     }
 

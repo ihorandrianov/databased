@@ -60,7 +60,7 @@ impl WAL {
             }
         }
     }
-
+    // Update them ethod so it recovers from all files in the WAL directory
     pub async fn recover(&mut self) -> Vec<u8> {
         if let Ok(buffer) = self.io_controller.recover().await {
             buffer
