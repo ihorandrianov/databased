@@ -87,17 +87,16 @@ struct Block {
 }
 
 impl Block {
-    fn construct(init_data: Vec<(String, String)>) -> Result<Self, PersistentLayerError> {
+    fn construct(
+        init_data: Vec<(String, String)>,
+    ) -> Result<(Self, Vec<(String, String)>), PersistentLayerError> {
         let mut header = Header::default();
         let mut byte_block: Vec<u8> = vec![0u8; PAGE_SIZE as usize];
+        let mut not_fit_records: Vec<(String, String)> = vec![];
         let header_offset: u16 = HEADER_SIZE
             .try_into()
             .expect("Header size should be in bounds of u16");
-        let upper_cursor: u16 = byte_block
-            .len()
-            .try_into()
-            .expect("Block should be fixed size in bounds of u16")
-            - 1;
+        let upper_cursor: u16 = byte_block.len() as u16 - 1;
         header.set(HeaderProps::LINP(header_offset));
         header.set(HeaderProps::LOWER(header_offset));
         header.set(HeaderProps::UPPER(upper_cursor));
@@ -107,15 +106,26 @@ impl Block {
             let upper = header.upper();
             let lower = header.lower();
             let new_upper = upper as usize - value_bytes.len();
-            let lp = LinePointer::new(key.to_string(), new_upper as u16)?;
+            let lp = LinePointer::<32>::new(key.to_string(), new_upper as u16)?;
             let lp_bytes = lp.to_bytes();
             let new_lower = lower as usize + lp_bytes.len();
             if header.is_space_to_write(lp_bytes.len() + value_bytes.len()) {
-                byte_block[new_upper..=upper as usize].copy_from_slice(&value_bytes);
+                byte_block[new_upper..upper as usize].copy_from_slice(&value_bytes);
                 byte_block[lower as usize..new_lower].copy_from_slice(&lp_bytes);
+                header.set(HeaderProps::LOWER(new_lower as u16));
+                header.set(HeaderProps::UPPER(new_upper as u16));
+            } else {
+                not_fit_records.push((key.to_string(), value.value))
             }
         }
-        Ok(todo!())
+
+        Ok((
+            Self {
+                header,
+                data: byte_block,
+            },
+            not_fit_records,
+        ))
     }
 }
 
