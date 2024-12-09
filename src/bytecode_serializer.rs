@@ -233,7 +233,7 @@ impl BytecodeSerializer {
         (result, index + 1)
     }
 
-    fn calculate_crc32(bytes: &[u8]) -> u32 {
+    pub fn calculate_crc32(bytes: &[u8]) -> u32 {
         let mut crc = 0xffffffff;
         for byte in bytes {
             let index = (crc ^ (*byte as u32)) & 0xff;
@@ -259,7 +259,7 @@ impl BytecodeSerializer {
         let mut start = 0;
         let mut index = 0;
         let mut chunk: Vec<u8> = vec![];
-        if (bytes.len() == 0) {
+        if bytes.len() == 0 {
             return vec![];
         }
         while index <= bytes.len() - 4 {

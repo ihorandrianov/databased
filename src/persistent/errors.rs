@@ -1,4 +1,4 @@
-use std::string::FromUtf8Error;
+use std::str::Utf8Error;
 use thiserror::Error;
 
 #[derive(Error, Debug)]
@@ -13,11 +13,20 @@ pub enum PersistentLayerError {
     LinePointerSerializationError,
 
     #[error("UTF8 error")]
-    FailedParsingUTF8(#[from] FromUtf8Error),
+    FailedParsingUTF8(#[from] Utf8Error),
 
     #[error("Value too long")]
     ValueTooLong,
 
     #[error("Header error: {0}")]
     HeaderError(String),
+
+    #[error("Value entry out of bounds")]
+    ValueEntryOOBError,
+
+    #[error("Failed validating checksum")]
+    ChecksumValidationError,
+
+    #[error("No space in block")]
+    NoSpaceInBlock,
 }
